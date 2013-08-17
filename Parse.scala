@@ -1,18 +1,28 @@
+/**
+  * Represent PoS tag + lemma
+  */
 case class Tag(lemma: String, pos: String) {
   lazy val splPos = pos.split(':')
   lazy val aglt = splPos(0) == "aglt"
 }
 
+/**
+  * Represent token and its tag
+  */
 case class TaggedToken(spelling: String, tag: Tag) {
-  def tabString = spelling + "\t" + tag.pos + "\t" + tag.lemma
+  lazy val tabString = spelling + "\t" + tag.pos + "\t" + tag.lemma
   lazy val aglt = tag.aglt
 }
 
-
+/**
+  * TAKiPi parser
+  */
 object Parser {
-  def parse(fname: String) = {
+  /**
+    * Return list of TaggedTokens loaded from TaKIPI XML output
+    */
+  def parse(fname: String): List[TaggedToken] = {
     println("Parsing " + fname)
-
     val orthre = """<orth>(.*)</orth>.*""".r
     val disambre = """.*disamb.*<base>(.*)</base><ctag>(.*)</ctag>.*""".r
     val data = scala.io.Source.fromFile(fname).mkString
@@ -23,7 +33,10 @@ object Parser {
     } } toList
   }
 
-  def agltFilter(t: List[TaggedToken]): List[TaggedToken] = {
+  /**
+    * Attach 'agglunitative' morphems to words
+    */
+  def attachAglt(t: List[TaggedToken]): List[TaggedToken] = {
     // optimized for tail recursion
     @scala.annotation.tailrec
     def iter(t: List[TaggedToken], acc: List[TaggedToken]): List[TaggedToken] = t match {
@@ -31,21 +44,25 @@ object Parser {
       case x :: xs if x.aglt => iter(xs.tail, TaggedToken(xs.head.spelling + x.spelling, xs.head.tag) :: acc)
       case x :: xs => iter(xs, x :: acc)
     }
-    iter(t, Nil)
+    iter(t.reverse, Nil)
   }
-
-  def filterByc(tagged: List[TaggedToken]): List[TaggedToken] = agltFilter(tagged.reverse) 
 }
 
 object Parse extends App {
   val sourceDir = "../toy/tagged/"
-  val targDir = "../toy/tagged/parsed/"
+  val targDir = "../toy/parsed/"
   val files = new java.io.File(sourceDir).listFiles map (_.getName)
 
-  files.par foreach { e => save(targDir + e, Parser.filterByc(Parser.parse(sourceDir + e))) }
-  // val a = files map { e => Parser.filterByc(Parser.parse(sourceDir + e)) } foreach { println _ }
+  // use parallel collections for speed up
+  files.par foreach { e => save(targDir + e, 
+      Parser.attachAglt(
+        Parser.parse(sourceDir + e)
+    )) }
 
-  def save(fname: String, tagged: Seq[TaggedToken]) = {
+  /**
+    * Saves results
+    */
+  def save(fname: String, tagged: Seq[TaggedToken]): Unit = {
      val p = new java.io.PrintWriter(fname)
      tagged foreach { e => p.println(e.tabString) }
      p.close()
