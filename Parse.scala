@@ -49,8 +49,8 @@ object Parser {
 }
 
 object Parse extends App {
-  val sourceDir = "../toy/tagged/"
-  val targDir = "../toy/parsed/"
+  val sourceDir = "../tmp_tagged/"
+  val targDir = "../tagged/"
   val files = new java.io.File(sourceDir).listFiles map (_.getName)
 
   // use parallel collections for speed up
