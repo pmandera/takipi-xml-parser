@@ -3,7 +3,8 @@
   */
 case class Tag(lemma: String, pos: String) {
   lazy val splPos = pos.split(':')
-  lazy val aglt = splPos(0) == "aglt"
+  lazy val mainPos = splPos(0)
+  lazy val aglt = mainPos == "aglt"
 }
 
 /**
@@ -12,6 +13,7 @@ case class Tag(lemma: String, pos: String) {
 case class TaggedToken(spelling: String, tag: Tag) {
   lazy val tabString = spelling + "\t" + tag.pos + "\t" + tag.lemma
   lazy val aglt = tag.aglt
+  def agltBy(next: TaggedToken): Boolean = tag.lemma == "by" && tag.mainPos == "qub" && next.tag.mainPos == "praet"
 }
 
 /**
@@ -41,7 +43,8 @@ object Parser {
     @scala.annotation.tailrec
     def iter(t: List[TaggedToken], acc: List[TaggedToken]): List[TaggedToken] = t match {
       case Nil => acc
-      case x :: xs if x.aglt => iter(xs.tail, TaggedToken(xs.head.spelling + x.spelling, xs.head.tag) :: acc)
+      case x :: xs if x.aglt => iter(TaggedToken(xs.head.spelling + x.spelling, xs.head.tag) :: xs.tail, acc)
+      case x :: xs if xs != Nil && x.agltBy(xs.head) => iter(xs.tail, TaggedToken(xs.head.spelling + x.spelling, xs.head.tag) :: acc)
       case x :: xs => iter(xs, x :: acc)
     }
     iter(t.reverse, Nil)
