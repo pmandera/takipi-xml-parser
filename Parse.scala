@@ -36,7 +36,7 @@ object Parser {
   }
 
   /**
-    * Attach 'agglunitative' morphems to words
+    * Attach 'agglutinative' morphems to words
     */
   def attachAglt(t: List[TaggedToken]): List[TaggedToken] = {
     // optimized for tail recursion
